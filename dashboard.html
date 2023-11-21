@@ -6,7 +6,21 @@
     <title>MOTOR</title>
 </head>
 <body>
-    <span><input type="range" id="throttle" min="-5" max="5" ></span> <br>
+    <span><input type="range" id="throttle" min="-5" max="5" list="marqueursTraction"></span>
+    <datalist id="marqueursTraction">
+        <option value="-5">FMS</option>
+        <option value="-4"></option>
+        <option value="-3"></option>
+        <option value="-2"></option>
+        <option value="-1"></option>
+        <option value="0">NEUTRE</option>
+        <option value="1"></option>
+        <option value="2"></option>
+        <option value="3"></option>
+        <option value="4"></option>
+        <option value="5">TRACTION MAX</option>
+
+    </datalist> <br>
     <span>Vitesse: <span id="speed"></span>km/h</span>
     <script src="./index.js"></script>
 </body>

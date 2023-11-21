@@ -1,54 +1,8 @@
-let currentSpeed = 0;
-let currentThrottle = 0;
-const maxThrottle = 5
-let accelerationDisplay = document.querySelector("#acceleration");
-let rangeInput = document.querySelector("#throttle");
-let speedDisplay = document.querySelector("#speed");
-let delta = 1;
-let lastUpdate = Date.now();
-let max_tps = 50.0;
-const maxSpeed = 80;
-function up(){
-    update();
-    requestAnimationFrame(up);
-}
-function update(){
-    let rn = Date.now();
-    let inter = rn - lastUpdate;
-    let theorical_inter = 1000.0 / max_tps;
-    delta = inter / theorical_inter;
-    lastUpdate = rn;
-    if(delta>5)delta=5;
-    if(delta<=0)return;
-
-    currentThrottle = parseInt(rangeInput.value);
-    let throttlePourcent = (currentThrottle*100)/maxThrottle
-    console.log(throttlePourcent/100)
-    currentSpeed += ((currentThrottle / 50) * delta);
-    if(currentSpeed > maxSpeed) currentSpeed = maxSpeed;
-    if(currentSpeed < 0) currentSpeed = 0;
-    speedDisplay.innerHTML = currentSpeed.toFixed(2);
-
-
-
-
-    SOUND_MANAGER.playFreq(1500, throttlePourcent)
-}
-(()=>{
-    requestAnimationFrame(up);
-})();
-
-
-
-
-
-
-
-
 const SOUND_MANAGER = {
     context: false,
     sounds: {},
     audios: {},
+    freqPlaying: [],
     soundscustomvolume: {},
     soundsdelta: {},
     globalVolume: 1,
@@ -142,6 +96,7 @@ const SOUND_MANAGER = {
                     a.onended = () => {
                     };
                     a.stop();
+                    console.log('stopped '+id)
                 }
             }
         }
@@ -201,7 +156,7 @@ const SOUND_MANAGER = {
 
         oscillator.start();
 
-        console.log('bip')
+        //console.log('bip')
     },
     stopFreq: function(hz){
         if(this.freqPlaying[hz]){
@@ -268,3 +223,113 @@ const SOUND_MANAGER = {
 }
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 SOUND_MANAGER.context = new AudioContext();
+
+
+
+
+
+
+
+
+
+
+
+
+let currentSpeed = 0;
+let currentThrottle = 0;
+const maxThrottle = 5
+let accelerationDisplay = document.querySelector("#acceleration");
+let rangeInput = document.querySelector("#throttle");
+let speedDisplay = document.querySelector("#speed");
+let delta = 1;
+let lastUpdate = Date.now();
+let max_tps = 50.0;
+const maxSpeed = 80;
+
+let fu = false
+
+
+
+
+
+function up(){
+    update();
+    requestAnimationFrame(up);
+    
+}
+function update(){
+    let rn = Date.now();
+    let inter = rn - lastUpdate;
+    let theorical_inter = 1000.0 / max_tps;
+    delta = inter / theorical_inter;
+    lastUpdate = rn;
+    if(delta>5)delta=5;
+    if(delta<=0)return;
+
+    currentThrottle = parseInt(rangeInput.value);
+    let throttlePourcent = (currentThrottle*100)/maxThrottle
+    currentSpeed += ((currentThrottle / 60) * delta);
+    if(currentSpeed > maxSpeed) currentSpeed = maxSpeed;
+    if(currentSpeed < 0) currentSpeed = 0;
+    speedDisplay.innerHTML = currentSpeed.toFixed(2);
+
+
+    if(currentSpeed>0 && fu===true){
+        fu=false
+        SOUND_MANAGER.playSound('defu206')
+        SOUND_MANAGER.stopSound('ambiance206')
+        //SOUND_MANAGER.stopSound('finHach206')
+    } else if (currentSpeed===0 && fu===false){
+        fu=true
+        SOUND_MANAGER.playSound('fu206')
+        SOUND_MANAGER.loopSound('ambiance206')
+        //SOUND_MANAGER.playSound('finHach206',throttlePourcent/300)
+        //SOUND_MANAGER.stopSound('hach206base')
+        //SOUND_MANAGER.getPlayingSounds('hach206base')
+    }
+
+    if(currentSpeed>0){
+        SOUND_MANAGER.loopSound('hach206',0.1)
+        SOUND_MANAGER.loopSound('hach206base',0.1)
+    } else {
+        SOUND_MANAGER.stopSound('hach206')
+        SOUND_MANAGER.stopSound('hach206base')
+    }
+
+    if((currentSpeed>0 && !(currentThrottle===0))){
+        SOUND_MANAGER.loopSound('hach206',Math.abs(throttlePourcent)/300+0.1)
+        SOUND_MANAGER.loopSound('hach206base',0.3)
+        
+        isPlayingHach=true
+    } 
+    if (currentSpeed===0 || currentThrottle===0){
+        //SOUND_MANAGER.stopSound('hach206')
+        SOUND_MANAGER.stopSound('hach206base')
+    }
+
+    if(currentSpeed>0){
+        SOUND_MANAGER.loopSound('mot206',0.5,currentSpeed/20)
+    } else {
+        SOUND_MANAGER.stopSound('mot206')
+    }
+}
+
+
+
+
+
+
+
+
+
+(()=>{
+    requestAnimationFrame(up);
+    SOUND_MANAGER.registerSound('hach206','./snd/val206/hacheur1.mp3')
+    SOUND_MANAGER.registerSound('hach206base','./snd/val206/hacheur_base.mp3')
+    SOUND_MANAGER.registerSound('ambiance206','./snd/val206/ambianceinter.mp3')
+    SOUND_MANAGER.registerSound('finHach206','./snd/val206/finHach.mp3')
+    SOUND_MANAGER.registerSound('mot206','./snd/val206/mot.mp3')
+
+    SOUND_MANAGER.registerSound('fu206','./snd/val206/fu-propre.mp3')
+    SOUND_MANAGER.registerSound('defu206','./snd/val206/de-fu.mp3')
+})();
