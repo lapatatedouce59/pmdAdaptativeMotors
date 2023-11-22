@@ -235,7 +235,7 @@ SOUND_MANAGER.context = new AudioContext();
 
 
 
-let currentSpeed = 0;
+let currentSpeed = 30;
 let currentThrottle = 0;
 const maxThrottle = 5
 let accelerationDisplay = document.querySelector("#acceleration");
@@ -248,7 +248,10 @@ const maxSpeed = 80;
 
 let fu = false
 
+let fuTriggered = false
 
+let fuAcq = false
+let finFu = false
 
 
 
@@ -273,48 +276,101 @@ function update(){
     if(currentSpeed < 0) currentSpeed = 0;
     speedDisplay.innerHTML = currentSpeed.toFixed(2);
 
+    let vitessePourcent = (currentSpeed*100)/maxSpeed
+    let aigFreqThreshold = 24 //valeur de viteesse où la fréquence aigue commence à disparaitre
+    let aigFreqVol = 0.5
+    let bFreqVol = 0.1
+    
+    bFreqVol=0.5-aigFreqVol+0.1
 
-    if(currentSpeed>0 && fu===true){
+    if(fuTriggered===false){
+        if(currentSpeed>aigFreqThreshold){
+            if(currentSpeed>24) aigFreqVol=0.5
+            if(currentSpeed>26) aigFreqVol=0.4
+            if(currentSpeed>30) aigFreqVol=0.3
+            if(currentSpeed>36) aigFreqVol=0.2
+            if(currentSpeed>38) aigFreqVol=0.1
+            if(currentSpeed>40) aigFreqVol=0
+        }
+
+        if(currentSpeed>0){
+            SOUND_MANAGER.loopSound('hach206',0.5)
+            //SOUND_MANAGER.loopSound('hach206base',0.1)
+        } else {
+            SOUND_MANAGER.stopSound('hach206')
+            SOUND_MANAGER.stopSound('hach206bis')
+            SOUND_MANAGER.stopSound('hach206base')
+        }
+    
+        if((currentSpeed>0 && !(currentThrottle===0))){
+            SOUND_MANAGER.loopSound('hach206',Math.abs(throttlePourcent)/70+0.4)
+            SOUND_MANAGER.loopSound('hach206base',0.3)
+            //SOUND_MANAGER.loopSound('hach206bis',0.1)
+            isPlayingHach=true
+        } 
+        if (currentSpeed===0 || currentThrottle===0){
+            //SOUND_MANAGER.stopSound('hach206')
+        }
+
+        if(currentSpeed>0){
+            //SOUND_MANAGER.loopSound('mot206',0.5,currentSpeed/20)
+            SOUND_MANAGER.loopSound('mot2061F',0.5,currentSpeed/20)
+            SOUND_MANAGER.loopSound('mot2062F',aigFreqVol,currentSpeed/20)
+            SOUND_MANAGER.loopSound('mot2063F',bFreqVol,currentSpeed/20)
+        }
+    } else {
+        if(currentSpeed===0) fuTriggered=false;
+
+        fuAcq=true
+        if(fu===false){
+            SOUND_MANAGER.playSound('fuprem206')
+            fu=true
+        }
+        rangeInput.value=-5
+        currentSpeed += ((-7.5 / 60) * delta);
+
+        //SOUND_MANAGER.stopSound('mot2062F')
+        SOUND_MANAGER.stopSound('mot2063F')
+        SOUND_MANAGER.stopSound('hach206')
+        SOUND_MANAGER.stopSound('hach206base')
+
+        
+        SOUND_MANAGER.loopSound('mot2061F',0.5,currentSpeed/20)
+        SOUND_MANAGER.loopSound('mot2062F',0.2,currentSpeed/20)
+
+        if(currentSpeed<12 && finFu===false){
+            finFu=true
+            SOUND_MANAGER.playSound('finfu206',1.5)
+        }
+
+
+        //SOUND_MANAGER.loopSound('mot2063F',bFreqVol,currentSpeed/20)
+    }
+
+    if(currentSpeed>0 && fu===true && fuTriggered===false){
         fu=false
+        fuAcq=false
+        finFu=false
         SOUND_MANAGER.playSound('defu206')
-        SOUND_MANAGER.stopSound('ambiance206')
+        //SOUND_MANAGER.stopSound('ambiance206')
         //SOUND_MANAGER.stopSound('finHach206')
-    } else if (currentSpeed===0 && fu===false){
+    } else if (currentSpeed===0 && fu===false && fuAcq===false){
         fu=true
         SOUND_MANAGER.playSound('fu206')
         SOUND_MANAGER.loopSound('ambiance206')
-        //SOUND_MANAGER.playSound('finHach206',throttlePourcent/300)
-        //SOUND_MANAGER.stopSound('hach206base')
-        //SOUND_MANAGER.getPlayingSounds('hach206base')
+        SOUND_MANAGER.stopSound('finfu206')
     }
 
     if(currentSpeed>0){
-        SOUND_MANAGER.loopSound('hach206',0.1)
-        SOUND_MANAGER.loopSound('hach206base',0.1)
-    } else {
-        SOUND_MANAGER.stopSound('hach206')
-        SOUND_MANAGER.stopSound('hach206base')
-    }
-
-    if((currentSpeed>0 && !(currentThrottle===0))){
-        SOUND_MANAGER.loopSound('hach206',Math.abs(throttlePourcent)/300+0.1)
-        SOUND_MANAGER.loopSound('hach206base',0.3)
-        
-        isPlayingHach=true
-    } 
-    if (currentSpeed===0 || currentThrottle===0){
-        //SOUND_MANAGER.stopSound('hach206')
-        SOUND_MANAGER.stopSound('hach206base')
-    }
-
-    if(currentSpeed>0){
-        SOUND_MANAGER.loopSound('mot206',0.5,currentSpeed/20)
-    } else {
-        SOUND_MANAGER.stopSound('mot206')
+        SOUND_MANAGER.loopSound('ambSansBase206',currentSpeed/70,0.9)
     }
 }
 
 
+let fuTrigger = document.querySelector('#fuTrigger')
+fuTrigger.addEventListener('click',()=>{
+    fuTriggered=true
+});
 
 
 
@@ -324,12 +380,21 @@ function update(){
 
 (()=>{
     requestAnimationFrame(up);
-    SOUND_MANAGER.registerSound('hach206','./snd/val206/hacheur1.mp3')
+    //SOUND_MANAGER.registerSound('hach206','./snd/val206/hacheur1.mp3')
+    SOUND_MANAGER.registerSound('hach206bis','./snd/val206/hacheur1.mp3')
+    SOUND_MANAGER.registerSound('hach206','./snd/val206/hacheureel.mp3')
     SOUND_MANAGER.registerSound('hach206base','./snd/val206/hacheur_base.mp3')
     SOUND_MANAGER.registerSound('ambiance206','./snd/val206/ambianceinter.mp3')
+    SOUND_MANAGER.registerSound('ambBase206','./snd/val206/ambAvecBase.mp3')
+    SOUND_MANAGER.registerSound('ambSansBase206','./snd/val206/ambSansBase.mp3')
     SOUND_MANAGER.registerSound('finHach206','./snd/val206/finHach.mp3')
     SOUND_MANAGER.registerSound('mot206','./snd/val206/mot.mp3')
+    SOUND_MANAGER.registerSound('mot2061F','./snd/val206/mot1F.mp3')
+    SOUND_MANAGER.registerSound('mot2062F','./snd/val206/mot2F.mp3')
+    SOUND_MANAGER.registerSound('mot2063F','./snd/val206/mot3F.mp3')
 
     SOUND_MANAGER.registerSound('fu206','./snd/val206/fu-propre.mp3')
     SOUND_MANAGER.registerSound('defu206','./snd/val206/de-fu.mp3')
+    SOUND_MANAGER.registerSound('fuprem206','./snd/val206/fu_prem.mp3')
+    SOUND_MANAGER.registerSound('finfu206','./snd/val206/finFu.mp3')
 })();
