@@ -294,17 +294,20 @@ function update(){
         }
 
         if(currentSpeed>0){
-            SOUND_MANAGER.loopSound('hach206',0.5)
+            //SOUND_MANAGER.loopSound('hach206',0.5)
             //SOUND_MANAGER.loopSound('hach206base',0.1)
         } else {
             SOUND_MANAGER.stopSound('hach206')
             SOUND_MANAGER.stopSound('hach206bis')
-            SOUND_MANAGER.stopSound('hach206base')
+            SOUND_MANAGER.stopSound('hach206ng')
+            SOUND_MANAGER.stopSound('hach206all')
         }
     
         if((currentSpeed>0 && !(currentThrottle===0))){
-            SOUND_MANAGER.loopSound('hach206',Math.abs(throttlePourcent)/70+0.4)
-            SOUND_MANAGER.loopSound('hach206base',0.3)
+            SOUND_MANAGER.loopSound('hach206',Math.abs(throttlePourcent)/70)
+            SOUND_MANAGER.loopSound('hach206all',Math.abs(throttlePourcent)/180+0.15)
+            console.log(`${Math.abs(throttlePourcent)/180+0.15}`)
+            //SOUND_MANAGER.loopSound('hach206ng',0.3)
             //SOUND_MANAGER.loopSound('hach206bis',0.1)
             isPlayingHach=true
         } 
@@ -314,7 +317,8 @@ function update(){
 
         if(currentSpeed>0){
             //SOUND_MANAGER.loopSound('mot206',0.5,currentSpeed/20)
-            SOUND_MANAGER.loopSound('mot2061F',0.5,currentSpeed/20)
+            SOUND_MANAGER.loopSound('mot2061F',Math.min(20/currentSpeed,0.5),currentSpeed/20)
+            //console.log(`${Math.min(20/currentSpeed,0.5)}`)
             SOUND_MANAGER.loopSound('mot2062F',aigFreqVol,currentSpeed/20)
             SOUND_MANAGER.loopSound('mot2063F',bFreqVol,currentSpeed/20)
         }
@@ -332,7 +336,8 @@ function update(){
         //SOUND_MANAGER.stopSound('mot2062F')
         SOUND_MANAGER.stopSound('mot2063F')
         SOUND_MANAGER.stopSound('hach206')
-        SOUND_MANAGER.stopSound('hach206base')
+        SOUND_MANAGER.stopSound('hach206ng')
+        SOUND_MANAGER.stopSound('hach206all')
 
         
         SOUND_MANAGER.loopSound('mot2061F',0.5,currentSpeed/20)
@@ -362,7 +367,8 @@ function update(){
     }
 
     if(currentSpeed>0){
-        SOUND_MANAGER.loopSound('ambSansBase206',currentSpeed/70,0.9)
+        SOUND_MANAGER.loopSound('ambBase206',currentSpeed/60,Math.max((currentSpeed/60)-0.3,0.1))
+        //console.log(`${Math.max((currentSpeed/60)-0.3,0.1)}`)
     }
 }
 
@@ -383,7 +389,9 @@ fuTrigger.addEventListener('click',()=>{
     //SOUND_MANAGER.registerSound('hach206','./snd/val206/hacheur1.mp3')
     SOUND_MANAGER.registerSound('hach206bis','./snd/val206/hacheur1.mp3')
     SOUND_MANAGER.registerSound('hach206','./snd/val206/hacheureel.mp3')
+    SOUND_MANAGER.registerSound('hach206all','./snd/val206/hachAig2.mp3')
     SOUND_MANAGER.registerSound('hach206base','./snd/val206/hacheur_base.mp3')
+    SOUND_MANAGER.registerSound('hach206ng','./snd/val206/hacheurng.mp3')
     SOUND_MANAGER.registerSound('ambiance206','./snd/val206/ambianceinter.mp3')
     SOUND_MANAGER.registerSound('ambBase206','./snd/val206/ambAvecBase.mp3')
     SOUND_MANAGER.registerSound('ambSansBase206','./snd/val206/ambSansBase.mp3')
