@@ -42,28 +42,30 @@ const SOUND_MANAGER = {
         };
         xhr.send();
     },
-    playSound: function (id, vol = 1, pitch = 1, onend = false, onnearend = false, prespitch=false) { // Returns true if no sound is linked, meaning should retry later
+    playSound: function (id, vol = 1, progress = 0, pitch = 1, onend = false, onnearend = false, prespitch=false) {
         let snd = this.sounds[id];
         if (!snd) {
             console.log("Attempted to play " + id + ", but no sound is linked !");
             return false;
         }
+    
+        if (progress < 0) progress = 0;
+        if (progress > 1) progress = 1;
+    
         let src = this.context.createBufferSource();
         src.buffer = snd;
-        // src.playbackRate.value = pitch;
-        this.setPitch(id, src, pitch,prespitch);
-
-        // src.connect(this.context.destination);
-
+        this.setPitch(id, src, pitch, prespitch);
+    
         let gainNode = this.context.createGain();
         src.connect(gainNode);
         src.gainNode = gainNode;
         gainNode.connect(this.context.destination);
+    
         let cstm = this.soundscustomvolume[id] ? this.soundscustomvolume[id] : 1;
         gainNode.gain.value = this.globalVolume * vol * cstm;
-        // console.log('Gain: '+gainNode.gain.value);
-
-
+    
+        let startTime = snd.duration * progress; // Calcule l'offset de démarrage en secondes
+    
         let rthis = this;
         src.onended = () => {
             if (onend && typeof onend == "function") onend();
@@ -74,13 +76,15 @@ const SOUND_MANAGER = {
                 }
                 c++;
             }
-        }
+        };
+    
         src.ontimeupdate = () => {
             if (src.currentTime > (src.buffer.duration - .5)) {
                 if (onnearend) onnearend();
             }
-        }
-        src.start(0);
+        };
+    
+        src.start(0, startTime); // Joue le son à partir de l'avancement donné
         this.audios[id].push(src);
         return src;
     },
@@ -193,7 +197,7 @@ const SOUND_MANAGER = {
         src.start(0);
         return src;
     },
-    loopSound: function(id, vol = 1, pitch = 1, prespitch = false){
+    loopSound: function(id, vol = 1, progress = 0.01, pitch = 1, prespitch = false){
         if(this.getPlayingSounds(id) && this.getPlayingSounds(id).length >= 1) {
             for(let sound of this.getPlayingSounds(id)){
                 sound.gainNode.gain.value = vol;
@@ -202,7 +206,7 @@ const SOUND_MANAGER = {
             return;
         }
         let b = ()=>{
-            this.playSound(id,vol,pitch,b);
+            this.playSound(id,vol,progress,pitch,b);
         }
         b();
     },
@@ -219,6 +223,37 @@ const SOUND_MANAGER = {
         source.preservesPitch = true;
         // source.detune = 800;
         source.playbackRate.value = Math.abs(value);
+    },
+    playSine: function(id, frequency, volume) {
+        if (this.freqPlaying[id]) {
+            // Met à jour la fréquence et le volume du son en cours
+            this.freqPlaying[id].oscillator.frequency.setValueAtTime(frequency, this.context.currentTime);
+            this.freqPlaying[id].gainNode.gain.setValueAtTime(volume, this.context.currentTime);
+            return;
+        }
+
+        let oscillator = this.context.createOscillator();
+        let gainNode = this.context.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(frequency, this.context.currentTime);
+
+        gainNode.gain.setValueAtTime(volume, this.context.currentTime);
+        oscillator.connect(gainNode);
+        gainNode.connect(this.context.destination);
+
+        oscillator.start();
+
+        this.freqPlaying[id] = { oscillator, gainNode };
+    },
+
+    stopSine: function(id) {
+        if (this.freqPlaying[id]) {
+            this.freqPlaying[id].oscillator.stop();
+            this.freqPlaying[id].oscillator.disconnect();
+            this.freqPlaying[id].gainNode.disconnect();
+            delete this.freqPlaying[id];
+        }
     }
     
 }
@@ -236,7 +271,7 @@ SOUND_MANAGER.context = new AudioContext();
 
 
 
-let currentSpeed = 30;
+let currentSpeed = 5;
 let currentThrottle = 0;
 const maxThrottle = 5
 let accelerationDisplay = document.querySelector("#acceleration");
@@ -261,6 +296,27 @@ function up(){
     requestAnimationFrame(up);
     
 }
+
+setInterval(()=>{
+    if(fuTriggered===false){
+        if(currentSpeed>0){
+            //SOUND_MANAGER.loopSound('hach206',0.5)
+            //SOUND_MANAGER.loopSound('hach206base',0.1)
+            if (currentSpeed<=25 && currentThrottle<0){
+                SOUND_MANAGER.stopSound('HACH_DES')
+                SOUND_MANAGER.playSound('HACH_DES',0.3,(1-(currentSpeed/25)))
+                SOUND_MANAGER.stopSound('HACH_CONST')
+                SOUND_MANAGER.stopSound('HACH_MTN')
+            } else if (currentSpeed<=25 && currentThrottle>0){
+                SOUND_MANAGER.stopSound('HACH_MTN')
+                SOUND_MANAGER.playSound('HACH_MTN',0.3,currentSpeed/25)
+                SOUND_MANAGER.stopSound('HACH_CONST')
+                SOUND_MANAGER.stopSound('HACH_DES')
+            }
+        }
+    }
+},250)
+
 function update(){
     let rn = Date.now();
     let inter = rn - lastUpdate;
@@ -277,51 +333,42 @@ function update(){
     if(currentSpeed < 0) currentSpeed = 0;
     speedDisplay.innerHTML = currentSpeed.toFixed(2);
 
-    let vitessePourcent = (currentSpeed*100)/maxSpeed
-    let aigFreqThreshold = 24 //valeur de viteesse où la fréquence aigue commence à disparaitre
-    let aigFreqVol = 0.5
-    let bFreqVol = 0.1
-    
-    bFreqVol=0.5-aigFreqVol+0.1
-
     if(fuTriggered===false){
-        if(currentSpeed>aigFreqThreshold){
-            if(currentSpeed>24) aigFreqVol=0.5
-            if(currentSpeed>26) aigFreqVol=0.4
-            if(currentSpeed>30) aigFreqVol=0.3
-            if(currentSpeed>36) aigFreqVol=0.2
-            if(currentSpeed>38) aigFreqVol=0.1
-            if(currentSpeed>40) aigFreqVol=0
+        if(currentSpeed>0){
+            if(currentSpeed>25){
+                SOUND_MANAGER.loopSound('HACH_CONST',Math.min(0.1, 0.1-(((currentSpeed-40)/(maxSpeed-40))*(0.1-0.01))))
+                SOUND_MANAGER.stopSound('HACH_DES')
+                SOUND_MANAGER.stopSound('HACH_MTN')
+            }
+        } else {
+            SOUND_MANAGER.stopSound('HACH_CONST')
+            SOUND_MANAGER.stopSound('HACH_DES')
+            SOUND_MANAGER.stopSound('HACH_MTN')
+            SOUND_MANAGER.stopSound('HARM_1')
+            SOUND_MANAGER.stopSound('HARM_2')
+            SOUND_MANAGER.stopSound('roulement')
         }
 
-        if(currentSpeed>0){
-            //SOUND_MANAGER.loopSound('hach206',0.5)
-            //SOUND_MANAGER.loopSound('hach206base',0.1)
-        } else {
-            SOUND_MANAGER.stopSound('hach206')
-            SOUND_MANAGER.stopSound('hach206bis')
-            SOUND_MANAGER.stopSound('hach206ng')
-            SOUND_MANAGER.stopSound('hach206all')
-        }
-    
-        if((currentSpeed>0 && !(currentThrottle===0))){
-            SOUND_MANAGER.loopSound('hach206',Math.abs(throttlePourcent)/70)
-            SOUND_MANAGER.loopSound('hach206all',Math.abs(throttlePourcent)/180+0.15)
-            console.log(`${Math.abs(throttlePourcent)/180+0.15}`)
-            //SOUND_MANAGER.loopSound('hach206ng',0.3)
-            //SOUND_MANAGER.loopSound('hach206bis',0.1)
-            isPlayingHach=true
-        } 
         if (currentSpeed===0 || currentThrottle===0){
             //SOUND_MANAGER.stopSound('hach206')
         }
 
         if(currentSpeed>0){
-            //SOUND_MANAGER.loopSound('mot206',0.5,currentSpeed/20)
-            SOUND_MANAGER.loopSound('mot2061F',Math.min(20/currentSpeed,0.5),currentSpeed/20)
+            let freq1 = (currentSpeed/10)*164
+            let freq2 = freq1*2.6
+
+            let freq1vol = (0.1-(((currentSpeed-30)/(maxSpeed-30))*(0.09-0.01)))/3
+            let freq2vol = (0.1-(((currentSpeed-35)/(maxSpeed-35))*(0.09-0.01)))/3
+            SOUND_MANAGER.playSine("harm1",freq1,Math.min(0.1, freq1vol))
+            SOUND_MANAGER.playSine("harm2",freq2,Math.min(0.1, freq2vol))
+
+            //console.log(`Freq 1: ${freq1.toFixed(2)}\nFreq 2: ${freq2.toFixed(2)}\nTE: ${(((freq2-freq1)/freq1)*100).toFixed(1)}`)
+            //SOUND_MANAGER.loopSound('HARM_1',0.05,0.01,(currentSpeed/20)+0.1)
+            //SOUND_MANAGER.loopSound('HARM_2',0.05,0.01,(currentSpeed/12)+0.1)
+            //SOUND_MANAGER.loopSound('mot2061F',Math.min(20/currentSpeed,0.5),currentSpeed/20)
             //console.log(`${Math.min(20/currentSpeed,0.5)}`)
-            SOUND_MANAGER.loopSound('mot2062F',aigFreqVol,currentSpeed/20)
-            SOUND_MANAGER.loopSound('mot2063F',bFreqVol,currentSpeed/20)
+            //SOUND_MANAGER.loopSound('mot2062F',aigFreqVol,currentSpeed/20)
+            //SOUND_MANAGER.loopSound('mot2063F',bFreqVol,currentSpeed/20)
         }
     } else {
         if(currentSpeed===0) fuTriggered=false;
@@ -334,15 +381,9 @@ function update(){
         rangeInput.value=-5
         currentSpeed += ((-7.5 / 60) * delta);
 
-        //SOUND_MANAGER.stopSound('mot2062F')
-        SOUND_MANAGER.stopSound('mot2063F')
-        SOUND_MANAGER.stopSound('hach206')
-        SOUND_MANAGER.stopSound('hach206ng')
-        SOUND_MANAGER.stopSound('hach206all')
-
-        
-        SOUND_MANAGER.loopSound('mot2061F',0.5,currentSpeed/20)
-        SOUND_MANAGER.loopSound('mot2062F',0.2,currentSpeed/20)
+        SOUND_MANAGER.stopSound('HACH_CONST')
+        SOUND_MANAGER.stopSound('HACH_DES')
+        SOUND_MANAGER.stopSound('HACH_MTN')
 
         if(currentSpeed<12 && finFu===false){
             finFu=true
@@ -368,7 +409,7 @@ function update(){
     }
 
     if(currentSpeed>0){
-        SOUND_MANAGER.loopSound('ambBase206',currentSpeed/60,Math.max((currentSpeed/60)-0.3,0.1))
+        SOUND_MANAGER.loopSound("roulement",(currentSpeed/(maxSpeed/0.8))+0.1)
         //console.log(`${Math.max((currentSpeed/60)-0.3,0.1)}`)
     }
 }
@@ -388,19 +429,12 @@ fuTrigger.addEventListener('click',()=>{
 (()=>{
     requestAnimationFrame(up);
     //SOUND_MANAGER.registerSound('hach206','./snd/val206/hacheur1.mp3')
-    SOUND_MANAGER.registerSound('hach206bis','./snd/val206/hacheur1.mp3')
-    SOUND_MANAGER.registerSound('hach206','./snd/val206/hacheureel.mp3')
-    SOUND_MANAGER.registerSound('hach206all','./snd/val206/hachAig2.mp3')
-    SOUND_MANAGER.registerSound('hach206base','./snd/val206/hacheur_base.mp3')
-    SOUND_MANAGER.registerSound('hach206ng','./snd/val206/hacheurng.mp3')
-    SOUND_MANAGER.registerSound('ambiance206','./snd/val206/ambianceinter.mp3')
-    SOUND_MANAGER.registerSound('ambBase206','./snd/val206/ambAvecBase.mp3')
-    SOUND_MANAGER.registerSound('ambSansBase206','./snd/val206/ambSansBase.mp3')
-    SOUND_MANAGER.registerSound('finHach206','./snd/val206/finHach.mp3')
-    SOUND_MANAGER.registerSound('mot206','./snd/val206/mot.mp3')
-    SOUND_MANAGER.registerSound('mot2061F','./snd/val206/mot1F.mp3')
-    SOUND_MANAGER.registerSound('mot2062F','./snd/val206/mot2F.mp3')
-    SOUND_MANAGER.registerSound('mot2063F','./snd/val206/mot3F.mp3')
+    SOUND_MANAGER.registerSound('HACH_CONST','./snd/mf01/HACH_CONST.mp3')
+    SOUND_MANAGER.registerSound('HACH_DES','./snd/mf01/HACH_DES.mp3')
+    SOUND_MANAGER.registerSound('HACH_MTN','./snd/mf01/HACH_MTN.mp3')
+    SOUND_MANAGER.registerSound('HARM_1','./snd/mf01/HARM_1.mp3')
+    SOUND_MANAGER.registerSound('HARM_2','./snd/mf01/HARM_2.mp3')
+    SOUND_MANAGER.registerSound('roulement','./snd/mf01/roulement.mp3')
 
     SOUND_MANAGER.registerSound('fu206','./snd/val206/fu-propre.mp3')
     SOUND_MANAGER.registerSound('defu206','./snd/val206/de-fu.mp3')
