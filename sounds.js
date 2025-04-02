@@ -299,7 +299,7 @@ function up(){
 
 setInterval(()=>{
     if(fuTriggered===false){
-        if(currentSpeed>0){
+        if(currentSpeed>0 && currentThrottle!==0){
             //SOUND_MANAGER.loopSound('hach206',0.5)
             //SOUND_MANAGER.loopSound('hach206base',0.1)
             if (currentSpeed<=25 && currentThrottle<0){
@@ -334,6 +334,7 @@ function update(){
     speedDisplay.innerHTML = currentSpeed.toFixed(2);
 
     if(fuTriggered===false){
+        SOUND_MANAGER.stopSound("fucrn")
         if(currentSpeed>0){
             if(currentSpeed>25){
                 SOUND_MANAGER.loopSound('HACH_CONST',Math.min(0.1, 0.1-(((currentSpeed-30)/(maxSpeed-30))*(0.1-0.01))))
@@ -346,9 +347,11 @@ function update(){
             SOUND_MANAGER.stopSound('HACH_MTN')
             SOUND_MANAGER.stopSound('HARM_1')
             SOUND_MANAGER.stopSound('HARM_2')
-            SOUND_MANAGER.stopSound('roulement')
 
             SOUND_MANAGER.stopSine('hach')
+        }
+        if(currentSpeed===0){
+            SOUND_MANAGER.stopSound('roulement')
         }
 
         if (currentSpeed===0 || currentThrottle===0){
@@ -382,11 +385,13 @@ function update(){
 
         fuAcq=true
         if(fu===false){
-            SOUND_MANAGER.playSound('fuprem206')
+            SOUND_MANAGER.playSound('fusta',1.5)
             fu=true
         }
         rangeInput.value=-5
         currentSpeed += ((-7.5 / 60) * delta);
+
+        SOUND_MANAGER.loopSound("fucrn",1.6)
 
         SOUND_MANAGER.stopSound('HACH_CONST')
         SOUND_MANAGER.stopSound('HACH_DES')
@@ -396,9 +401,9 @@ function update(){
         SOUND_MANAGER.stopSine("harm2")
         SOUND_MANAGER.stopSine("hach")
 
-        if(currentSpeed<12 && finFu===false){
+        if(currentSpeed<1 && finFu===false){
             finFu=true
-            SOUND_MANAGER.playSound('finfu206',1.5)
+            SOUND_MANAGER.playSound('fuend',1.5)
         }
 
 
@@ -409,14 +414,14 @@ function update(){
         fu=false
         fuAcq=false
         finFu=false
-        SOUND_MANAGER.playSound('defu206')
+        //SOUND_MANAGER.playSound('defu206')
         //SOUND_MANAGER.stopSound('ambiance206')
         //SOUND_MANAGER.stopSound('finHach206')
-    } else if (currentSpeed===0 && fu===false && fuAcq===false){
+    } else if (currentSpeed===0 && fu===false && fuAcq===false && currentThrottle<=-4){
         fu=true
-        SOUND_MANAGER.playSound('stop',1,0.4)
+        SOUND_MANAGER.playSound('stop',0.3,0.4)
         //SOUND_MANAGER.loopSound('ambiance206')
-        SOUND_MANAGER.stopSound('finfu206')
+        //SOUND_MANAGER.stopSound('finfu206')
     }
 
     if(currentSpeed>0){
@@ -450,6 +455,11 @@ fuTrigger.addEventListener('click',()=>{
     SOUND_MANAGER.registerSound('HARM_1','./snd/mf01/HARM_1.mp3')
     SOUND_MANAGER.registerSound('HARM_2','./snd/mf01/HARM_2.mp3')
     SOUND_MANAGER.registerSound('stop','./snd/mf01/tbrakeOn.mp3')
+
+    SOUND_MANAGER.registerSound('fucrn','./snd/mf01/fu_course.mp3')
+    SOUND_MANAGER.registerSound('fuend','./snd/mf01/fu_end.mp3')
+    SOUND_MANAGER.registerSound('fusta','./snd/mf01/fu_start.mp3')
+
     SOUND_MANAGER.registerSound('roulement','./snd/mf01/roulement.mp3')
     SOUND_MANAGER.registerSound('roulement2','./snd/mf01/roulement2.wav')
 
