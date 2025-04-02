@@ -307,7 +307,7 @@ setInterval(()=>{
                 SOUND_MANAGER.playSound('HACH_DES',0.3,(1-(currentSpeed/25)))
                 SOUND_MANAGER.stopSound('HACH_CONST')
                 SOUND_MANAGER.stopSound('HACH_MTN')
-            } else if (currentSpeed<=25 && currentThrottle>0){
+            } else if (currentSpeed<=25 && currentThrottle>=0){
                 SOUND_MANAGER.stopSound('HACH_MTN')
                 SOUND_MANAGER.playSound('HACH_MTN',0.3,currentSpeed/25)
                 SOUND_MANAGER.stopSound('HACH_CONST')
@@ -336,7 +336,7 @@ function update(){
     if(fuTriggered===false){
         if(currentSpeed>0){
             if(currentSpeed>25){
-                SOUND_MANAGER.loopSound('HACH_CONST',Math.min(0.1, 0.1-(((currentSpeed-40)/(maxSpeed-40))*(0.1-0.01))))
+                SOUND_MANAGER.loopSound('HACH_CONST',Math.min(0.1, 0.1-(((currentSpeed-30)/(maxSpeed-30))*(0.1-0.01))))
                 SOUND_MANAGER.stopSound('HACH_DES')
                 SOUND_MANAGER.stopSound('HACH_MTN')
             }
@@ -347,20 +347,27 @@ function update(){
             SOUND_MANAGER.stopSound('HARM_1')
             SOUND_MANAGER.stopSound('HARM_2')
             SOUND_MANAGER.stopSound('roulement')
+
+            SOUND_MANAGER.stopSine('hach')
         }
 
         if (currentSpeed===0 || currentThrottle===0){
             //SOUND_MANAGER.stopSound('hach206')
         }
 
-        if(currentSpeed>0){
+        if(currentSpeed>0 && fuTriggered===false){
             let freq1 = (currentSpeed/10)*164
             let freq2 = freq1*2.6
 
-            let freq1vol = (0.1-(((currentSpeed-30)/(maxSpeed-30))*(0.09-0.01)))/3
-            let freq2vol = (0.1-(((currentSpeed-35)/(maxSpeed-35))*(0.09-0.01)))/3
+            let freq1vol = (0.1-(((currentSpeed-30)/(maxSpeed-30))*(0.09-0.01)))/5
+            let freq2vol = (0.1-(((currentSpeed-35)/(maxSpeed-35))*(0.09-0.01)))/5
+
+            let hachVol = ((0.1-(((currentSpeed-35)/(maxSpeed-35))*(0.09-0.01)))/5)*(Math.abs(currentThrottle)/maxThrottle)
+
             SOUND_MANAGER.playSine("harm1",freq1,Math.min(0.1, freq1vol))
             SOUND_MANAGER.playSine("harm2",freq2,Math.min(0.1, freq2vol))
+
+            SOUND_MANAGER.playSine("hach",300,Math.min(0.1, hachVol))
 
             //console.log(`Freq 1: ${freq1.toFixed(2)}\nFreq 2: ${freq2.toFixed(2)}\nTE: ${(((freq2-freq1)/freq1)*100).toFixed(1)}`)
             //SOUND_MANAGER.loopSound('HARM_1',0.05,0.01,(currentSpeed/20)+0.1)
@@ -385,6 +392,10 @@ function update(){
         SOUND_MANAGER.stopSound('HACH_DES')
         SOUND_MANAGER.stopSound('HACH_MTN')
 
+        SOUND_MANAGER.stopSine("harm1")
+        SOUND_MANAGER.stopSine("harm2")
+        SOUND_MANAGER.stopSine("hach")
+
         if(currentSpeed<12 && finFu===false){
             finFu=true
             SOUND_MANAGER.playSound('finfu206',1.5)
@@ -403,14 +414,18 @@ function update(){
         //SOUND_MANAGER.stopSound('finHach206')
     } else if (currentSpeed===0 && fu===false && fuAcq===false){
         fu=true
-        SOUND_MANAGER.playSound('fu206')
-        SOUND_MANAGER.loopSound('ambiance206')
+        SOUND_MANAGER.playSound('stop',1,0.4)
+        //SOUND_MANAGER.loopSound('ambiance206')
         SOUND_MANAGER.stopSound('finfu206')
     }
 
     if(currentSpeed>0){
-        SOUND_MANAGER.loopSound("roulement",(currentSpeed/(maxSpeed/0.8))+0.1)
+        SOUND_MANAGER.loopSound("roulement",((currentSpeed/(maxSpeed/1))+0.2)*Math.min((currentSpeed+2)/12, 1))
+        SOUND_MANAGER.loopSound("roulement2",((currentSpeed/(maxSpeed/0.8))+0.2)*Math.min((currentSpeed-10)/15, 1))
         //console.log(`${Math.max((currentSpeed/60)-0.3,0.1)}`)
+    } else {
+        SOUND_MANAGER.stopSound("roulement")
+        SOUND_MANAGER.stopSound("roulement2")
     }
 }
 
@@ -434,7 +449,9 @@ fuTrigger.addEventListener('click',()=>{
     SOUND_MANAGER.registerSound('HACH_MTN','./snd/mf01/HACH_MTN.mp3')
     SOUND_MANAGER.registerSound('HARM_1','./snd/mf01/HARM_1.mp3')
     SOUND_MANAGER.registerSound('HARM_2','./snd/mf01/HARM_2.mp3')
+    SOUND_MANAGER.registerSound('stop','./snd/mf01/tbrakeOn.mp3')
     SOUND_MANAGER.registerSound('roulement','./snd/mf01/roulement.mp3')
+    SOUND_MANAGER.registerSound('roulement2','./snd/mf01/roulement2.wav')
 
     SOUND_MANAGER.registerSound('fu206','./snd/val206/fu-propre.mp3')
     SOUND_MANAGER.registerSound('defu206','./snd/val206/de-fu.mp3')
